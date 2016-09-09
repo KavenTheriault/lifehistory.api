@@ -6,6 +6,7 @@ from flask.ext.httpauth import HTTPBasicAuth
 from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
+from datetime import datetime
 
 # initialization
 app = Flask(__name__)
@@ -47,11 +48,23 @@ class User(db.Model):
         return user
 
 
-class Llama(db.Model):
-    __tablename__ = 'llamas'
+class ActivityType(db.Model):
+    __tablename__ = 'activity_types'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64))
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_date = db.Column(db.DateTime)
+    name = db.Column(db.String(64))
+    show_rating = db.Column(db.Boolean)
+
+    def __init__(self):
+        self.created_date = datetime.utcnow()
+
+    def serialize(self):  
+        return {           
+            'created_date': self.created_date, 
+            'name': self.name,
+            'show_rating': self.show_rating
+        }
 
 
 @auth.verify_password
@@ -98,32 +111,32 @@ def get_auth_token():
     return jsonify({'token': token.decode('ascii'), 'duration': 600})
 
 
-@app.route('/api/resource')
+@app.route('/api/activity_types', methods=['POST'])
 @auth.login_required
-def get_resource():
-    return jsonify({'data': 'Hello, %s!' % g.user.username})
-
-@app.route('/api/llama', methods=['POST'])
-@auth.login_required
-def new_llama():
-    name = request.json.get('name')
+def new_activity_type():
     user_id = g.user.id
+    name = request.json.get('name')
+    show_rating = request.json.get('show_rating')
     
-    llama = Llama(name=name, user_id=user_id)
-    db.session.add(llama)
-    db.session.commit()
-    return (jsonify({'name': llama.name}), 201,
-            {'Location': url_for('get_llama', id=llama.id, _external=True)})
+    activity_type = ActivityType()
+    activity_type.user_id = user_id
+    activity_type.name = name
+    activity_type.show_rating = show_rating
 
-@app.route('/api/llama/<int:id>')
+    db.session.add(activity_type)
+    db.session.commit()
+    return (jsonify(ActivityType.serialize(activity_type)), 201,
+            {'Location': url_for('get_activity_type', id=activity_type.id, _external=True)})
+
+@app.route('/api/activity_types/<int:id>')
 @auth.login_required
-def get_llama(id):
-    llama = Llama.query.get(id)
-    if not llama:
+def get_activity_type(id):
+    activity_type = ActivityType.query.get(id)
+    if not activity_type:
         abort(400)
-    if llama.user_id != g.user.id:
+    if activity_type.user_id != g.user.id:
         abort(401)
-    return jsonify({'name': llama.name})
+    return jsonify(ActivityType.serialize(activity_type))
 
 if __name__ == '__main__':
     if not os.path.exists('db.sqlite'):
