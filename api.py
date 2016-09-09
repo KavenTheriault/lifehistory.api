@@ -51,10 +51,10 @@ class User(db.Model):
 class ActivityType(db.Model):
     __tablename__ = 'activity_types'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    created_date = db.Column(db.DateTime)
-    name = db.Column(db.String(64))
-    show_rating = db.Column(db.Boolean)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_date = db.Column(db.DateTime, nullable=False)
+    name = db.Column(db.String(128), nullable=False)
+    show_rating = db.Column(db.Boolean, nullable=False)
 
     def __init__(self):
         self.created_date = datetime.utcnow()
@@ -64,6 +64,24 @@ class ActivityType(db.Model):
             'created_date': self.created_date, 
             'name': self.name,
             'show_rating': self.show_rating
+        }
+
+
+class Activity(db.Model):
+    __tablename__ = 'activities'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_date = db.Column(db.DateTime, nullable=False)
+    name = db.Column(db.String(128), nullable=False)
+    activity_type_id = db.Column(db.Integer, db.ForeignKey('activity_types.id'), nullable=False)
+
+    def __init__(self):
+        self.created_date = datetime.utcnow()
+
+    def serialize(self):  
+        return {           
+            'created_date': self.created_date, 
+            'name': self.name
         }
 
 
@@ -128,6 +146,7 @@ def new_activity_type():
     return (jsonify(ActivityType.serialize(activity_type)), 201,
             {'Location': url_for('get_activity_type', id=activity_type.id, _external=True)})
 
+
 @app.route('/api/activity_types/<int:id>')
 @auth.login_required
 def get_activity_type(id):
@@ -137,6 +156,42 @@ def get_activity_type(id):
     if activity_type.user_id != g.user.id:
         abort(401)
     return jsonify(ActivityType.serialize(activity_type))
+
+
+@app.route('/api/activities', methods=['POST'])
+@auth.login_required
+def new_activity():
+    user_id = g.user.id
+    name = request.json.get('name')
+    activity_type_id = request.json.get('activity_type_id')
+    
+    activity_type = ActivityType.query.get(activity_type_id)
+    if not activity_type:
+        abort(400)
+    if activity_type.user_id != g.user.id:
+        abort(401)
+
+    activity = Activity()
+    activity.user_id = user_id
+    activity.name = name
+    activity.activity_type_id = activity_type_id
+
+    db.session.add(activity)
+    db.session.commit()
+    return (jsonify(Activity.serialize(activity)), 201,
+            {'Location': url_for('get_activity', id=activity.id, _external=True)})
+
+
+@app.route('/api/activities/<int:id>')
+@auth.login_required
+def get_activity(id):
+    activity = Activity.query.get(id)
+    if not activity:
+        abort(400)
+    if activity.user_id != g.user.id:
+        abort(401)
+    return jsonify(Activity.serialize(activity))
+
 
 if __name__ == '__main__':
     if not os.path.exists('db.sqlite'):
