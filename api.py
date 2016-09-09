@@ -59,9 +59,10 @@ class ActivityType(db.Model):
     def __init__(self):
         self.created_date = datetime.utcnow()
 
-    def serialize(self):  
-        return {           
-            'created_date': self.created_date, 
+    def serialize(self):
+        return {
+            'id': self.id,
+            'created_date': self.created_date,
             'name': self.name,
             'show_rating': self.show_rating
         }
@@ -78,10 +79,33 @@ class Activity(db.Model):
     def __init__(self):
         self.created_date = datetime.utcnow()
 
-    def serialize(self):  
-        return {           
-            'created_date': self.created_date, 
-            'name': self.name
+    def serialize(self):
+        activity_type = ActivityType.query.get(self.activity_type_id)
+        return {
+            'id': self.id,
+            'created_date': self.created_date,
+            'name': self.name,
+            'activity_type': ActivityType.serialize(activity_type)
+        }
+
+
+class Day(db.Model):
+    __tablename__ = 'days'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_date = db.Column(db.DateTime, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+    note = db.Column(db.String(4096))
+
+    def __init__(self):
+        self.created_date = datetime.utcnow()
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'created_date': self.created_date,
+            'date': self.date,
+            'note': self.note
         }
 
 
@@ -191,6 +215,38 @@ def get_activity(id):
     if activity.user_id != g.user.id:
         abort(401)
     return jsonify(Activity.serialize(activity))
+
+
+@app.route('/api/days', methods=['POST'])
+@auth.login_required
+def new_day():
+    user_id = g.user.id
+    date = datetime.strptime(request.json.get('date'), '%Y-%m-%d')
+    note = request.json.get('note')
+    
+    if Day.query.filter_by(date=date).first() is not None:
+        abort(400)
+
+    day = Day()
+    day.user_id = user_id
+    day.date = date
+    day.note = note
+
+    db.session.add(day)
+    db.session.commit()
+    return (jsonify(Day.serialize(day)), 201,
+            {'Location': url_for('get_day', id=day.id, _external=True)})
+
+
+@app.route('/api/days/<int:id>')
+@auth.login_required
+def get_day(id):
+    day = Day.query.get(id)
+    if not day:
+        abort(400)
+    if day.user_id != g.user.id:
+        abort(401)
+    return jsonify(Day.serialize(day))
 
 
 if __name__ == '__main__':
