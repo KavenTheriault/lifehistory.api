@@ -7,6 +7,8 @@ from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
 from datetime import datetime
+import time
+import json
 
 # initialization
 app = Flask(__name__)
@@ -106,6 +108,27 @@ class Day(db.Model):
             'created_date': self.created_date,
             'date': self.date,
             'note': self.note
+        }
+
+
+class LifeEntry(db.Model):
+    __tablename__ = 'life_entries'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_date = db.Column(db.DateTime, nullable=False)
+    day_id = db.Column(db.Integer, db.ForeignKey('days.id'), nullable=False)
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time)
+
+    def __init__(self):
+        self.created_date = datetime.utcnow()
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'created_date': self.created_date#,
+            #'start_time': json.dumps(self.start_time, default=json_serial),
+            #'end_time': json.dumps(self.end_time, default=json_serial)
         }
 
 
@@ -247,6 +270,43 @@ def get_day(id):
     if day.user_id != g.user.id:
         abort(401)
     return jsonify(Day.serialize(day))
+
+
+@app.route('/api/life_entries', methods=['POST'])
+@auth.login_required
+def new_life_entry():
+    user_id = g.user.id
+    day_id = request.json.get('day_id')
+    start_time = datetime.strptime(request.json.get('start_time'), '%H:%M').time()
+    end_time = datetime.strptime(request.json.get('end_time'), '%H:%M').time()
+    
+    day = Day.query.get(day_id)
+    if not day:
+        abort(400)
+    if day.user_id != g.user.id:
+        abort(401)
+
+    life_entry = LifeEntry()
+    life_entry.user_id = user_id
+    life_entry.day_id = day_id
+    life_entry.start_time = start_time
+    life_entry.end_time = end_time
+
+    db.session.add(life_entry)
+    db.session.commit()
+    return (jsonify(LifeEntry.serialize(life_entry)), 201,
+            {'Location': url_for('get_life_entry', id=life_entry.id, _external=True)})
+
+
+@app.route('/api/life_entries/<int:id>')
+@auth.login_required
+def get_life_entry(id):
+    life_entry = LifeEntry.query.get(id)
+    if not life_entry:
+        abort(400)
+    if life_entry.user_id != g.user.id:
+        abort(401)
+    return jsonify(LifeEntry.serialize(life_entry))
 
 
 if __name__ == '__main__':
