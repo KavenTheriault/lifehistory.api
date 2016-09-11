@@ -126,10 +126,43 @@ class LifeEntry(db.Model):
     def serialize(self):
         return {
             'id': self.id,
-            'created_date': self.created_date#,
-            #'start_time': json.dumps(self.start_time, default=json_serial),
-            #'end_time': json.dumps(self.end_time, default=json_serial)
+            'created_date': self.created_date,
+            'start_time': json.dumps(self.start_time, default=date_handler),
+            'end_time': json.dumps(self.end_time, default=date_handler)
         }
+
+
+class LifeEntryActivity(db.Model):
+    __tablename__ = 'life_entry_activities'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_date = db.Column(db.DateTime, nullable=False)
+    life_entry_id = db.Column(db.Integer, db.ForeignKey('life_entries.id'), nullable=False)
+    activity_id = db.Column(db.Integer, db.ForeignKey('activities.id'), nullable=False)
+    description = db.Column(db.String(512))
+    quantity = db.Column(db.Float)
+    rating = db.Column(db.Integer)
+
+    def __init__(self):
+        self.created_date = datetime.utcnow()
+
+    def serialize(self):
+        activity = Activity.query.get(self.activity_id)
+        return {
+            'id': self.id,
+            'created_date': self.created_date,
+            'description': self.description,
+            'quantity': self.quantity,
+            'rating': self.rating,
+            'activity': Activity.serialize(activity)
+        }
+
+
+def date_handler(obj):
+    if hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    else:
+        raise TypeError
 
 
 @auth.verify_password
@@ -307,6 +340,53 @@ def get_life_entry(id):
     if life_entry.user_id != g.user.id:
         abort(401)
     return jsonify(LifeEntry.serialize(life_entry))
+
+
+@app.route('/api/life_entry_activities', methods=['POST'])
+@auth.login_required
+def new_life_entry_activity():
+    user_id = g.user.id
+    life_entry_id = request.json.get('life_entry_id')
+    activity_id = request.json.get('activity_id')
+    description = request.json.get('description')
+    quantity = request.json.get('quantity')
+    rating = request.json.get('rating')
+
+    life_entry = LifeEntry.query.get(life_entry_id)
+    if not life_entry:
+        abort(400)
+    if life_entry.user_id != g.user.id:
+        abort(401)
+
+    activity = Activity.query.get(activity_id)
+    if not activity:
+        abort(400)
+    if activity.user_id != g.user.id:
+        abort(401)
+
+    life_entry_activity = LifeEntryActivity()
+    life_entry_activity.user_id = user_id
+    life_entry_activity.life_entry_id = life_entry_id
+    life_entry_activity.activity_id = activity_id
+    life_entry_activity.description = description
+    life_entry_activity.quantity = quantity
+    life_entry_activity.rating = rating
+
+    db.session.add(life_entry_activity)
+    db.session.commit()
+    return (jsonify(LifeEntryActivity.serialize(life_entry_activity)), 201,
+            {'Location': url_for('get_life_entry_activity', id=life_entry_activity.id, _external=True)})
+
+
+@app.route('/api/life_entry_activities/<int:id>')
+@auth.login_required
+def get_life_entry_activity(id):
+    life_entry_activity = LifeEntryActivity.query.get(id)
+    if not life_entry_activity:
+        abort(400)
+    if life_entry_activity.user_id != g.user.id:
+        abort(401)
+    return jsonify(LifeEntryActivity.serialize(life_entry_activity))
 
 
 if __name__ == '__main__':
