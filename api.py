@@ -103,11 +103,14 @@ class Day(db.Model):
         self.created_date = datetime.utcnow()
 
     def serialize(self):
+        life_entries = LifeEntry.query.filter_by(day_id=self.id).all()
+        serialized_life_entries=[LifeEntry.serialize(life_entry) for life_entry in life_entries]
         return {
             'id': self.id,
             'created_date': self.created_date,
             'date': self.date,
-            'note': self.note
+            'note': self.note,
+            'life_entries': serialized_life_entries
         }
 
 
@@ -124,11 +127,14 @@ class LifeEntry(db.Model):
         self.created_date = datetime.utcnow()
 
     def serialize(self):
+        life_entry_activities = LifeEntryActivity.query.filter_by(life_entry_id=self.id).all()
+        serialized_life_entry_activities=[LifeEntryActivity.serialize(life_entry_activity) for life_entry_activity in life_entry_activities]
         return {
             'id': self.id,
             'created_date': self.created_date,
             'start_time': json.dumps(self.start_time, default=date_handler),
-            'end_time': json.dumps(self.end_time, default=date_handler)
+            'end_time': json.dumps(self.end_time, default=date_handler),
+            'life_entry_activities': serialized_life_entry_activities
         }
 
 
