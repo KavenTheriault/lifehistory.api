@@ -310,8 +310,14 @@ def get_day(id):
 def new_life_entry():
     user_id = g.user.id
     day_id = request.json.get('day_id')
-    start_time = datetime.strptime(request.json.get('start_time'), '%H:%M').time()
-    end_time = datetime.strptime(request.json.get('end_time'), '%H:%M').time()
+    request_start_time = request.json.get('start_time')
+    request_end_time = request.json.get('end_time')
+
+    start_time = datetime.strptime(request_start_time, '%H:%M').time()
+    if request_end_time:
+        end_time = datetime.strptime(request_end_time, '%H:%M').time()
+    else:
+        end_time = None
     
     day = Day.query.get(day_id)
     if not day:
