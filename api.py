@@ -77,17 +77,17 @@ class Activity(db.Model):
     created_date = db.Column(db.DateTime, nullable=False)
     name = db.Column(db.String(128), nullable=False)
     activity_type_id = db.Column(db.Integer, db.ForeignKey('activity_types.id'), nullable=False)
+    activity_type = db.relationship('ActivityType', backref=db.backref('activities', lazy='dynamic'))
 
     def __init__(self):
         self.created_date = datetime.utcnow()
 
     def serialize(self):
-        activity_type = ActivityType.query.get(self.activity_type_id)
         return {
             'id': self.id,
             'created_date': self.created_date,
             'name': self.name,
-            'activity_type': ActivityType.serialize(activity_type)
+            'activity_type': ActivityType.serialize(self.activity_type)
         }
 
 
@@ -98,19 +98,18 @@ class Day(db.Model):
     created_date = db.Column(db.DateTime, nullable=False)
     date = db.Column(db.DateTime, nullable=False)
     note = db.Column(db.String(4096))
+    life_entries = db.relationship('LifeEntry', backref='days', lazy='dynamic')
 
     def __init__(self):
         self.created_date = datetime.utcnow()
 
     def serialize(self):
-        life_entries = LifeEntry.query.filter_by(day_id=self.id).all()
-        serialized_life_entries=[LifeEntry.serialize(life_entry) for life_entry in life_entries]
         return {
             'id': self.id,
             'created_date': self.created_date,
             'date': self.date,
             'note': self.note,
-            'life_entries': serialized_life_entries
+            'life_entries': [LifeEntry.serialize(life_entry) for life_entry in self.life_entries]
         }
 
 
@@ -122,19 +121,18 @@ class LifeEntry(db.Model):
     day_id = db.Column(db.Integer, db.ForeignKey('days.id'), nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time)
+    life_entry_activities = db.relationship('LifeEntryActivity', backref='life_entries', lazy='dynamic')
 
     def __init__(self):
         self.created_date = datetime.utcnow()
 
     def serialize(self):
-        life_entry_activities = LifeEntryActivity.query.filter_by(life_entry_id=self.id).all()
-        serialized_life_entry_activities=[LifeEntryActivity.serialize(life_entry_activity) for life_entry_activity in life_entry_activities]
         return {
             'id': self.id,
             'created_date': self.created_date,
             'start_time': json.dumps(self.start_time, default=date_handler),
             'end_time': json.dumps(self.end_time, default=date_handler),
-            'life_entry_activities': serialized_life_entry_activities
+            'life_entry_activities': [LifeEntryActivity.serialize(life_entry_activity) for life_entry_activity in self.life_entry_activities]
         }
 
 
@@ -148,19 +146,19 @@ class LifeEntryActivity(db.Model):
     description = db.Column(db.String(512))
     quantity = db.Column(db.Float)
     rating = db.Column(db.Integer)
+    activity = db.relationship('Activity', backref=db.backref('life_entry_activities', lazy='dynamic'))
 
     def __init__(self):
         self.created_date = datetime.utcnow()
 
     def serialize(self):
-        activity = Activity.query.get(self.activity_id)
         return {
             'id': self.id,
             'created_date': self.created_date,
             'description': self.description,
             'quantity': self.quantity,
             'rating': self.rating,
-            'activity': Activity.serialize(activity)
+            'activity': Activity.serialize(self.activity)
         }
 
 
