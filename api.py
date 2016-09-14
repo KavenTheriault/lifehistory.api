@@ -259,6 +259,41 @@ def get_activity_type(id):
     return jsonify(ActivityType.serialize(activity_type))
 
 
+@app.route('/api/activity_types/<int:id>', methods=['PUT'])
+@auth.login_required
+def update_activity_type(id):
+    activity_type = ActivityType.query.get(id)
+    if not activity_type:
+        abort(400)
+    if activity_type.user_id != g.user.id:
+        abort(401)
+
+    name = request.json.get('name')
+    show_rating = request.json.get('show_rating')
+
+    activity_type.name = name
+    activity_type.show_rating = show_rating
+
+    db.session.commit()
+    
+    return jsonify(ActivityType.serialize(activity_type))
+
+
+@app.route('/api/activity_types/<int:id>', methods=['DELETE'])
+@auth.login_required
+def delete_activity_type(id):
+    activity_type = ActivityType.query.get(id)
+    if not activity_type:
+        abort(400)
+    if activity_type.user_id != g.user.id:
+        abort(401)
+
+    db.session.delete(activity_type)
+    db.session.commit()
+
+    return jsonify(ActivityType.serialize(activity_type))
+
+
 @app.route('/api/activities', methods=['POST'])
 @auth.login_required
 def new_activity():
