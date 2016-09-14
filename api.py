@@ -49,6 +49,18 @@ class User(db.Model):
         user = User.query.get(data['id'])
         return user
 
+    @staticmethod
+    def verify_user_and_password(username_or_token, password):
+        # first try to authenticate by token
+        user = User.verify_auth_token(username_or_token)
+        if not user:
+            # try to authenticate with username/password
+            user = User.query.filter_by(username=username_or_token).first()
+            if not user or not user.verify_password(password):
+                return False
+        g.user = user
+        return True
+
 
 class ActivityType(db.Model):
     __tablename__ = 'activity_types'
@@ -171,15 +183,20 @@ def date_handler(obj):
 
 @auth.verify_password
 def verify_password(username_or_token, password):
-    # first try to authenticate by token
-    user = User.verify_auth_token(username_or_token)
-    if not user:
-        # try to authenticate with username/password
-        user = User.query.filter_by(username=username_or_token).first()
-        if not user or not user.verify_password(password):
-            return False
-    g.user = user
-    return True
+    return User.verify_user_and_password(username_or_token, password)
+
+
+@app.route('/api/authenticate', methods=['POST'])
+def authenticate():
+    username = request.json.get('username')
+    password = request.json.get('password')
+
+    if User.verify_user_and_password(username, password):
+        result = 1
+    else:
+        result = 0
+
+    return (jsonify({'authenticate_result': result}), 200)
 
 
 @app.route('/api/users', methods=['POST'])
