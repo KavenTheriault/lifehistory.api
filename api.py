@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-from flask import Flask, abort, request, jsonify, g, url_for
+from flask import Flask, abort, request, jsonify, g, url_for, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.httpauth import HTTPBasicAuth
 from passlib.apps import custom_app_context as pwd_context
@@ -76,7 +76,6 @@ class ActivityType(db.Model):
     def serialize(self):
         return {
             'id': self.id,
-            'created_date': self.created_date,
             'name': self.name,
             'show_rating': self.show_rating
         }
@@ -97,7 +96,6 @@ class Activity(db.Model):
     def serialize(self):
         return {
             'id': self.id,
-            'created_date': self.created_date,
             'name': self.name,
             'activity_type': ActivityType.serialize(self.activity_type)
         }
@@ -118,7 +116,6 @@ class Day(db.Model):
     def serialize(self):
         return {
             'id': self.id,
-            'created_date': self.created_date,
             'date': self.date,
             'note': self.note,
             'life_entries': [LifeEntry.serialize(life_entry) for life_entry in self.life_entries]
@@ -141,7 +138,6 @@ class LifeEntry(db.Model):
     def serialize(self):
         return {
             'id': self.id,
-            'created_date': self.created_date,
             'start_time': json.dumps(self.start_time, default=date_handler),
             'end_time': json.dumps(self.end_time, default=date_handler),
             'life_entry_activities': [LifeEntryActivity.serialize(life_entry_activity) for life_entry_activity in self.life_entry_activities]
@@ -166,7 +162,6 @@ class LifeEntryActivity(db.Model):
     def serialize(self):
         return {
             'id': self.id,
-            'created_date': self.created_date,
             'description': self.description,
             'quantity': self.quantity,
             'rating': self.rating,
@@ -230,6 +225,14 @@ def get_auth_token():
     return jsonify({'token': token.decode('ascii'), 'duration': 600})
 
 
+@app.route('/api/activity_types')
+@auth.login_required
+def get_activity_types():
+    activity_types = ActivityType.query.filter_by(user_id=g.user.id).all()
+    serialized_array = [ActivityType.serialize(activity_type) for activity_type in activity_types]
+    return Response(json.dumps(serialized_array), mimetype='application/json')
+
+
 @app.route('/api/activity_types', methods=['POST'])
 @auth.login_required
 def new_activity_type():
@@ -275,7 +278,7 @@ def update_activity_type(id):
     activity_type.show_rating = show_rating
 
     db.session.commit()
-    
+
     return jsonify(ActivityType.serialize(activity_type))
 
 
