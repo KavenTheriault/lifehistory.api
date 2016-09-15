@@ -297,6 +297,14 @@ def delete_activity_type(id):
     return jsonify(ActivityType.serialize(activity_type))
 
 
+@app.route('/api/activities')
+@auth.login_required
+def get_activities():
+    activities = Activity.query.filter_by(user_id=g.user.id).all()
+    serialized_array = [Activity.serialize(activity) for activity in activities]
+    return Response(json.dumps(serialized_array), mimetype='application/json')
+
+
 @app.route('/api/activities', methods=['POST'])
 @auth.login_required
 def new_activity():
@@ -329,6 +337,41 @@ def get_activity(id):
         abort(400)
     if activity.user_id != g.user.id:
         abort(401)
+    return jsonify(Activity.serialize(activity))
+
+
+@app.route('/api/activities/<int:id>', methods=['PUT'])
+@auth.login_required
+def update_activity(id):
+    activity = Activity.query.get(id)
+    if not activity:
+        abort(400)
+    if activity.user_id != g.user.id:
+        abort(401)
+
+    name = request.json.get('name')
+    activity_type_id = request.json.get('activity_type_id')
+
+    activity.name = name
+    activity.activity_type_id = activity_type_id
+
+    db.session.commit()
+
+    return jsonify(Activity.serialize(activity))
+
+
+@app.route('/api/activities/<int:id>', methods=['DELETE'])
+@auth.login_required
+def delete_activity(id):
+    activity = Activity.query.get(id)
+    if not activity:
+        abort(400)
+    if activity.user_id != g.user.id:
+        abort(401)
+
+    db.session.delete(activity)
+    db.session.commit()
+
     return jsonify(Activity.serialize(activity))
 
 
