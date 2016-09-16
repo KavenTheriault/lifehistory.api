@@ -297,6 +297,14 @@ def delete_activity_type(id):
     return jsonify(ActivityType.serialize(activity_type))
 
 
+@app.route('/api/activity_types/search/<search_term>')
+@auth.login_required
+def search_activity_type(search_term):
+    activity_types = ActivityType.query.filter_by(user_id=g.user.id).filter(ActivityType.name.like('%'+search_term+'%')).all()
+    serialized_array = [ActivityType.serialize(activity_type) for activity_type in activity_types]
+    return Response(json.dumps(serialized_array), mimetype='application/json')
+
+
 @app.route('/api/activities')
 @auth.login_required
 def get_activities():
