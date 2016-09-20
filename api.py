@@ -418,6 +418,16 @@ def get_day(id):
     return jsonify(Day.serialize(day))
 
 
+@app.route('/api/days/<selected_date>')
+@auth.login_required
+def get_day_by_date(selected_date):
+    date = datetime.strptime(selected_date, '%Y-%m-%d')
+    day = Day.query.filter((Day.user_id == g.user.id) & (Day.date == date)).first()
+    if not day:
+        abort(404)
+    return jsonify(Day.serialize(day))
+
+
 @app.route('/api/days/<int:id>', methods=['PUT'])
 @auth.login_required
 def update_day(id):
