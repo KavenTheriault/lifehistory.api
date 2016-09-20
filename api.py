@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 from flask import Flask, abort, request, jsonify, g, url_for, Response
+from flask_cors import CORS
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.httpauth import HTTPBasicAuth
 from passlib.apps import custom_app_context as pwd_context
@@ -20,6 +21,8 @@ app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 db = SQLAlchemy(app)
 auth = HTTPBasicAuth()
 
+# A Flask extension for handling Cross Origin Resource Sharing (CORS)
+CORS(app)
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -294,7 +297,7 @@ def delete_activity_type(id):
     db.session.delete(activity_type)
     db.session.commit()
 
-    return jsonify(ActivityType.serialize(activity_type))
+    return ''
 
 
 @app.route('/api/activity_types/search/<search_term>')
@@ -380,7 +383,7 @@ def delete_activity(id):
     db.session.delete(activity)
     db.session.commit()
 
-    return jsonify(Activity.serialize(activity))
+    return ''
 
 
 @app.route('/api/days', methods=['POST'])
