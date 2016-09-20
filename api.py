@@ -418,6 +418,23 @@ def get_day(id):
     return jsonify(Day.serialize(day))
 
 
+@app.route('/api/days/<int:id>', methods=['PUT'])
+@auth.login_required
+def update_day(id):
+    day = Day.query.get(id)
+    if not day:
+        abort(400)
+    if day.user_id != g.user.id:
+        abort(401)
+
+    note = request.json.get('note')
+
+    day.note = note
+    db.session.commit()
+
+    return jsonify(Day.serialize(day))
+
+
 @app.route('/api/life_entries', methods=['POST'])
 @auth.login_required
 def new_life_entry():
@@ -459,6 +476,47 @@ def get_life_entry(id):
     if life_entry.user_id != g.user.id:
         abort(401)
     return jsonify(LifeEntry.serialize(life_entry))
+
+
+@app.route('/api/life_entries/<int:id>', methods=['PUT'])
+@auth.login_required
+def update_life_entry(id):
+    life_entry = LifeEntry.query.get(id)
+    if not life_entry:
+        abort(400)
+    if life_entry.user_id != g.user.id:
+        abort(401)
+
+    request_start_time = request.json.get('start_time')
+    request_end_time = request.json.get('end_time')
+
+    start_time = datetime.strptime(request_start_time, '%H:%M').time()
+    if request_end_time:
+        end_time = datetime.strptime(request_end_time, '%H:%M').time()
+    else:
+        end_time = None
+
+    life_entry.start_time = start_time
+    life_entry.end_time = end_time
+
+    db.session.commit()
+
+    return jsonify(LifeEntry.serialize(life_entry))
+
+
+@app.route('/api/life_entries/<int:id>', methods=['DELETE'])
+@auth.login_required
+def delete_life_entry(id):
+    life_entry = LifeEntry.query.get(id)
+    if not life_entry:
+        abort(400)
+    if life_entry.user_id != g.user.id:
+        abort(401)
+
+    db.session.delete(life_entry)
+    db.session.commit()
+
+    return ''
 
 
 @app.route('/api/life_entry_activities', methods=['POST'])
@@ -506,6 +564,51 @@ def get_life_entry_activity(id):
     if life_entry_activity.user_id != g.user.id:
         abort(401)
     return jsonify(LifeEntryActivity.serialize(life_entry_activity))
+
+
+@app.route('/api/life_entry_activities/<int:id>', methods=['PUT'])
+@auth.login_required
+def update_life_entry_activity(id):
+    life_entry_activity = LifeEntryActivity.query.get(id)
+    if not life_entry_activity:
+        abort(400)
+    if life_entry_activity.user_id != g.user.id:
+        abort(401)
+
+    activity_id = request.json.get('activity_id')
+    description = request.json.get('description')
+    quantity = request.json.get('quantity')
+    rating = request.json.get('rating')
+
+    activity = Activity.query.get(activity_id)
+    if not activity:
+        abort(400)
+    if activity.user_id != g.user.id:
+        abort(401)
+
+    life_entry_activity.activity_id = activity_id
+    life_entry_activity.description = description
+    life_entry_activity.quantity = quantity
+    life_entry_activity.rating = rating
+
+    db.session.commit()
+
+    return jsonify(LifeEntryActivity.serialize(life_entry_activity))
+
+
+@app.route('/api/life_entry_activities/<int:id>', methods=['DELETE'])
+@auth.login_required
+def delete_life_entry_activity(id):
+    life_entry_activity = LifeEntryActivity.query.get(id)
+    if not life_entry_activity:
+        abort(400)
+    if life_entry_activity.user_id != g.user.id:
+        abort(401)
+
+    db.session.delete(life_entry_activity)
+    db.session.commit()
+
+    return ''
 
 
 if __name__ == '__main__':
