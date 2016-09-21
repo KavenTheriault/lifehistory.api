@@ -141,6 +141,7 @@ class LifeEntry(db.Model):
     def serialize(self):
         return {
             'id': self.id,
+            'day_id': self.day_id,
             'start_time': json.dumps(self.start_time, default=date_handler),
             'end_time': json.dumps(self.end_time, default=date_handler),
             'life_entry_activities': [LifeEntryActivity.serialize(life_entry_activity) for life_entry_activity in self.life_entry_activities]
@@ -523,9 +524,10 @@ def delete_life_entry(id):
     if life_entry.user_id != g.user.id:
         abort(401)
 
+    db.session.query(LifeEntryActivity).filter_by(LifeEntryActivity.life_entry_id == life_entry.id).delete()
     db.session.delete(life_entry)
-    db.session.commit()
 
+    db.session.commit()
     return ''
 
 
