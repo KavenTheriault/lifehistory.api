@@ -387,6 +387,14 @@ def delete_activity(id):
     return ''
 
 
+@app.route('/api/activities/search/<search_term>')
+@auth.login_required
+def search_activity(search_term):
+    activities = Activity.query.filter_by(user_id=g.user.id).filter(Activity.name.like('%'+search_term+'%')).all()
+    serialized_array = [Activity.serialize(activity) for activity in activities]
+    return Response(json.dumps(serialized_array), mimetype='application/json')
+
+
 @app.route('/api/days', methods=['POST'])
 @auth.login_required
 def new_day():
@@ -524,7 +532,7 @@ def delete_life_entry(id):
     if life_entry.user_id != g.user.id:
         abort(401)
 
-    db.session.query(LifeEntryActivity).filter_by(LifeEntryActivity.life_entry_id == life_entry.id).delete()
+    db.session.query(LifeEntryActivity).filter_by(life_entry_id=life_entry.id).delete()
     db.session.delete(life_entry)
 
     db.session.commit()
