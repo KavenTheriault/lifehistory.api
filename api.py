@@ -71,6 +71,7 @@ class ActivityType(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_date = db.Column(db.DateTime, nullable=False)
     name = db.Column(db.String(128), nullable=False)
+    show_quantity = db.Column(db.Boolean, nullable=False)
     show_rating = db.Column(db.Boolean, nullable=False)
 
     def __init__(self):
@@ -80,6 +81,7 @@ class ActivityType(db.Model):
         return {
             'id': self.id,
             'name': self.name,
+            'show_quantity': self.show_quantity,
             'show_rating': self.show_rating
         }
 
@@ -166,6 +168,7 @@ class LifeEntryActivity(db.Model):
     def serialize(self):
         return {
             'id': self.id,
+            'life_entry_id': self.life_entry_id,
             'description': self.description,
             'quantity': self.quantity,
             'rating': self.rating,
@@ -243,11 +246,13 @@ def new_activity_type():
     user_id = g.user.id
     name = request.json.get('name')
     show_rating = request.json.get('show_rating')
+    show_quantity = request.json.get('show_quantity')
     
     activity_type = ActivityType()
     activity_type.user_id = user_id
     activity_type.name = name
     activity_type.show_rating = show_rating
+    activity_type.show_quantity = show_quantity
 
     db.session.add(activity_type)
     db.session.commit()
