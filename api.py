@@ -144,8 +144,8 @@ class LifeEntry(db.Model):
         return {
             'id': self.id,
             'day_id': self.day_id,
-            'start_time': json.dumps(self.start_time, default=date_handler),
-            'end_time': json.dumps(self.end_time, default=date_handler),
+            'start_time': get_time_string(self.start_time),
+            'end_time': get_time_string(self.end_time),
             'life_entry_activities': [LifeEntryActivity.serialize(life_entry_activity) for life_entry_activity in self.life_entry_activities]
         }
 
@@ -176,11 +176,12 @@ class LifeEntryActivity(db.Model):
         }
 
 
-def date_handler(obj):
-    if hasattr(obj, 'isoformat'):
-        return obj.isoformat()
+def get_time_string(my_time):
+    if my_time is not None:
+        time_tuple = (0, 0, 0, my_time.hour, my_time.minute, my_time.second, 0, 0, 0)
+        return time.strftime("%H:%M:%S", time_tuple)
     else:
-        raise TypeError
+        return None
 
 
 @auth.verify_password
