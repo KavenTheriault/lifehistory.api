@@ -121,7 +121,7 @@ class Day(db.Model):
     def serialize(self):
         return {
             'id': self.id,
-            'date': self.date,
+            'date': get_date_string(self.date),
             'note': self.note,
             'life_entries': [LifeEntry.serialize(life_entry) for life_entry in self.life_entries]
         }
@@ -180,6 +180,13 @@ def get_time_string(my_time):
     if my_time is not None:
         time_tuple = (0, 0, 0, my_time.hour, my_time.minute, my_time.second, 0, 0, 0)
         return time.strftime("%H:%M:%S", time_tuple)
+    else:
+        return None
+
+
+def get_date_string(my_date):
+    if my_date is not None:
+        return my_date.strftime('%Y-%m-%d')
     else:
         return None
 
