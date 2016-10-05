@@ -30,12 +30,19 @@ destination_user_id = 1
 
 #Default Data
 food_category_query = """	INSERT INTO activity_types(user_id, created_date, name, show_quantity, show_rating)
-							VALUES(?, ?, 'Nourriture', 1, 1) """.format(destination_user_id)
-print(food_category_query)
+							VALUES(?, ?, 'Nourriture', 1, 1) """
 cursorV2.execute(food_category_query, (destination_user_id, datetime.now()))
+food_category_id = cursorV2.lastrowid
 
-cursorV2.execute("SELECT id FROM activity_types WHERE name = 'Nourriture'")
-food_category_id = cursorV2.fetchone()[0]
+place_category_query = """	INSERT INTO activity_types(user_id, created_date, name, show_quantity, show_rating)
+							VALUES(?, ?, 'Lieux', 0, 0) """
+cursorV2.execute(place_category_query, (destination_user_id, datetime.now()))
+place_category_id = cursorV2.lastrowid
+
+work_activity_query = """	INSERT INTO activities(user_id, created_date, name, activity_type_id)
+							VALUES(?, ?, 'Solutions TLM', ?) """
+cursorV2.execute(work_activity_query, (destination_user_id, datetime.now(), place_category_id))
+work_activity_id = cursorV2.lastrowid
 
 #Create food activities
 for row in cursorV1.execute("""	SELECT LunchDescription AS Name FROM LH_Eatings WHERE LunchDescription <> ''
@@ -93,6 +100,19 @@ for row in cursorV1.execute("SELECT Description, Hour, Date, Comment FROM LH_Eat
 	
 	life_entry_activity_query = "INSERT INTO life_entry_activities(user_id, created_date, life_entry_id, activity_id, description) VALUES(?, ?, ?, ?, ?)"
 	cursorV2.execute(life_entry_activity_query, (destination_user_id, datetime.now(), life_entry_id, activity_id, row[3]))
+
+#Create work life entries
+for row in cursorV1.execute("SELECT Date, '[' || WorkNbHour || ' heures] ' || WorkDescription AS Name FROM LH_Activities WHERE WorkDescription <> ''"):
+	cursorV2.execute("SELECT id FROM days WHERE date = ?", (date_to_string(string_to_date(row[0])),))
+	day_id = cursorV2.fetchone()[0]
+
+	life_entry_query = "INSERT INTO life_entries(user_id, created_date, day_id, start_time) VALUES(?, ?, ?, ?)"
+	cursorV2.execute(life_entry_query, (destination_user_id, datetime.now(), day_id, '08:00:00'))
+
+	life_entry_id = cursorV2.lastrowid
+	
+	life_entry_activity_query = "INSERT INTO life_entry_activities(user_id, created_date, life_entry_id, activity_id, description) VALUES(?, ?, ?, ?, ?)"
+	cursorV2.execute(life_entry_activity_query, (destination_user_id, datetime.now(), life_entry_id, work_activity_id, row[1]))
 
 
 connV1.commit()
