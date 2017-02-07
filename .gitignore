@@ -47,3 +47,6 @@ nosetests.xml
 pyvenv.cfg
 .venv
 pip-selfcheck.json
+
+#Database
+/db.sqlite
