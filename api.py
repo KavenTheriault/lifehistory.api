@@ -552,7 +552,7 @@ def delete_life_entry(id):
     return ''
 
 
-@app.route('/api/life_entries/search/', methods=['POST'])
+@app.route('/api/life_entries/search', methods=['POST'])
 @auth.login_required
 def search_life_entries():
     activity_id = request.json.get('activity_id')
