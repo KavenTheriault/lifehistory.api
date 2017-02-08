@@ -567,21 +567,30 @@ def search_life_entries():
                         join(Day).\
                         join(LifeEntryActivity.activity).\
                         join(Activity.activity_type).\
-                        with_labels()
+                        with_labels().order_by(Day.date)
+
+    no_parameters = True
 
     if activity_id is not None:
         query = query.filter(LifeEntryActivity.activity_id==activity_id)
+        no_parameters = False
 
     if activity_type_id is not None:
         query = query.filter(Activity.activity_type_id==activity_type_id)
+        no_parameters = False
 
     if start_date is not None:
         query = query.filter(Day.date>=start_date)
+        no_parameters = False
 
     if end_date is not None:
         query = query.filter(Day.date<=end_date)
+        no_parameters = False
 
-    query_result = query.limit(100).all()
+    if no_parameters:
+        query_result = []
+    else:
+        query_result = query.limit(100).all()
 
     def serialize(result_row):
         return {
