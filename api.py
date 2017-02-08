@@ -594,8 +594,8 @@ def search_life_entries():
             'description': result_row.description,
             'quantity': result_row.quantity,
             'rating': result_row.rating,
-            'name': result_row.name,
-            'name2': result_row.name
+            'activity_type_name': result_row.name,
+            'activity_name': result_row[7]
         }
 
     serialized_array = [serialize(result_row) for result_row in query_result]
