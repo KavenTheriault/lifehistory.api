@@ -567,7 +567,7 @@ def search_life_entries():
                         join(Day).\
                         join(LifeEntryActivity.activity).\
                         join(Activity.activity_type).\
-                        with_labels().order_by(Day.date)
+                        with_labels().order_by(Day.date, LifeEntry.start_time)
 
     no_parameters = True
 
