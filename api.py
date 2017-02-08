@@ -581,9 +581,7 @@ def search_life_entries():
     if end_date is not None:
         query = query.filter(Day.date<=end_date)
 
-    print(query.statement)
     query_result = query.limit(100).all()
-    print(query_result)
 
     def serialize(result_row):
         return {
