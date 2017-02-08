@@ -552,6 +552,54 @@ def delete_life_entry(id):
     return ''
 
 
+@app.route('/api/life_entries/search/', methods=['POST'])
+@auth.login_required
+def search_life_entries():
+    activity_id = request.json.get('activity_id')
+    activity_type_id = request.json.get('activity_type_id')
+    start_date = request.json.get('start_date')
+    end_date = request.json.get('end_date')
+
+    query = db.session.query(LifeEntryActivity.description, LifeEntryActivity.quantity, LifeEntryActivity.rating).filter(LifeEntryActivity.user_id==g.user.id).\
+                        add_column(Day.id).add_column(Day.date).add_column(LifeEntry.start_time).add_column(LifeEntry.end_time).\
+                        add_column(Activity.name).add_column(ActivityType.name).\
+                        join(LifeEntry).\
+                        join(Day).\
+                        join(LifeEntryActivity.activity).\
+                        join(Activity.activity_type).\
+                        with_labels()
+
+    if activity_id is not None:
+        query = query.filter(LifeEntryActivity.activity_id==activity_id)
+
+    if activity_type_id is not None:
+        query = query.filter(Activity.activity_type_id==activity_type_id)
+
+    if start_date is not None:
+        query = query.filter(Day.date>=start_date)
+
+    if end_date is not None:
+        query = query.filter(Day.date<=end_date)
+
+    query_result = query.limit(100).all()
+
+    def serialize(result_row):
+        return {
+            'day_id': result_row.id,
+            'date': get_date_string(result_row.date),
+            'start_time': get_time_string(result_row.start_time),
+            'end_time': get_time_string(result_row.end_time),
+            'description': result_row.description,
+            'quantity': result_row.quantity,
+            'rating': result_row.rating,
+            'activity_type_name': result_row.name,
+            'activity_name': result_row[7]
+        }
+
+    serialized_array = [serialize(result_row) for result_row in query_result]
+    return Response(json.dumps(serialized_array), mimetype='application/json')
+
+
 @app.route('/api/life_entry_activities', methods=['POST'])
 @auth.login_required
 def new_life_entry_activity():
