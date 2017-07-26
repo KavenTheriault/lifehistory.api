@@ -704,4 +704,4 @@ def delete_life_entry_activity(id):
 if __name__ == '__main__':
     if not os.path.exists('db.sqlite'):
         db.create_all()
-    app.run(debug=True, host='0.0.0.0')
+    app.run(host='0.0.0.0', threaded=True)
