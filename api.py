@@ -4,6 +4,7 @@ from flask import Flask, abort, request, jsonify, g, url_for, Response
 from flask_cors import CORS
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.httpauth import HTTPBasicAuth
+from sqlalchemy import or_
 from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
@@ -559,6 +560,7 @@ def search_life_entries():
     activity_type_id = request.json.get('activity_type_id')
     start_date = request.json.get('start_date')
     end_date = request.json.get('end_date')
+    text = request.json.get('text')
 
     query = db.session.query(LifeEntryActivity.description, LifeEntryActivity.quantity, LifeEntryActivity.rating).filter(LifeEntryActivity.user_id==g.user.id).\
                         add_column(Day.id).add_column(Day.date).add_column(LifeEntry.start_time).add_column(LifeEntry.end_time).\
@@ -567,7 +569,7 @@ def search_life_entries():
                         join(Day).\
                         join(LifeEntryActivity.activity).\
                         join(Activity.activity_type).\
-                        with_labels().order_by(Day.date, LifeEntry.start_time)
+                        with_labels().order_by(Day.date.desc(), LifeEntry.start_time.desc())
 
     no_parameters = True
 
@@ -587,10 +589,15 @@ def search_life_entries():
         query = query.filter(Day.date<=end_date)
         no_parameters = False
 
+    if text is not None:
+        text = '%' + text + '%'
+        query = query.filter(or_(Activity.name.like(text), ActivityType.name.like(text), LifeEntryActivity.description.like(text)))
+        no_parameters = False
+
     if no_parameters:
         query_result = []
     else:
-        query_result = query.limit(100).all()
+        query_result = query.all()
 
     def serialize(result_row):
         return {
