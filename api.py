@@ -416,7 +416,7 @@ def new_day():
     date = datetime.strptime(request.json.get('date'), '%Y-%m-%d')
     note = request.json.get('note')
     
-    if Day.query.filter_by(date=date).first() is not None:
+    if Day.query.filter((Day.user_id == g.user.id) & (Day.date == date)).first() is not None:
         abort(400)
 
     day = Day()
